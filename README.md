@@ -7,7 +7,7 @@ vault folder works well). A single-file HTML runner quizzes you on one session
 or many.
 
 ```
-/plugin marketplace add Gritee/claude-plugins
+/plugin marketplace add https://github.com/Gritee/claude-plugins.git
 /plugin install session-recall@gritee
 ```
 
@@ -72,7 +72,7 @@ Requires `python3` (stdlib only).
 #### As a plugin (recommended)
 
 ```
-/plugin marketplace add Gritee/claude-plugins
+/plugin marketplace add https://github.com/Gritee/claude-plugins.git
 /plugin install session-recall@gritee
 ```
 
