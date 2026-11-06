@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session Recall</title>
+<style>
+  :root { --bg: #fbfbfa; --ink: #222; --muted: #777; --line: #e4e4e0; --right: #2f8f3f; --right-bg: rgba(47,143,63,.07); --wrong: #a05050;
+    font: 16px/1.6 Charter, "Iowan Old Style", Georgia, serif; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --ink: #ddd; --muted: #888; --line: #333; --right: #6fcf7f; --right-bg: rgba(111,207,127,.08); --wrong: #d08a8a; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); display: flex; }
+  a { color: inherit; }
+  code { font: .88em ui-monospace, Menlo, monospace; }
+  button { font: inherit; color: inherit; background: none; cursor: pointer; }
+  nav { width: 230px; flex: none; padding: 2rem 1.25rem; border-right: 1px solid var(--line); font-size: .9rem; min-height: 100vh; box-sizing: border-box; }
+  nav label { display: block; margin: .35rem 0; cursor: pointer; }
+  nav .date { color: var(--muted); font-size: .8rem; display: block; margin-left: 1.4rem; }
+  nav .add { margin-top: 1.5rem; color: var(--muted); }
+  main { flex: 1; max-width: 640px; padding: 3rem 2.5rem 6rem; }
+  .where { color: var(--muted); font-size: .85rem; margin-bottom: 1.5rem; }
+  .ctx { color: var(--muted); font-style: italic; font-size: .92rem; margin: 0 0 .4rem; }
+  .prompt { font-size: 1.15rem; margin: 0 0 1rem; }
+  .opt { display: block; width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 4px; padding: .55rem .8rem; margin: .5rem 0; }
+  .opt:hover:not(:disabled) { border-color: var(--muted); }
+  .opt:disabled { cursor: default; }
+  .opt.right { border-color: var(--right); box-shadow: 0 0 0 2px var(--right); background: var(--right-bg); }
+  .opt.picked:not(.right) { border-color: var(--wrong); }
+  .ans { font-size: .95rem; margin-top: 1.25rem; padding-left: .9rem; border-left: 2px solid var(--line); }
+  .ans p { margin: .4rem 0; }
+  .ans .src, .ans .from { color: var(--muted); font-size: .85rem; }
+  .move { display: flex; justify-content: space-between; margin-top: 2rem; }
+  .move button { border: 0; padding: 0; color: var(--muted); }
+  .move button:hover:not(:disabled) { color: var(--ink); }
+  .move button:disabled { visibility: hidden; }
+  details { margin-top: 3rem; font-size: .92rem; } summary { cursor: pointer; color: var(--muted); }
+  .empty { color: var(--muted); }
+</style>
+<!-- Generated next to this file by recall.py. Loaded as scripts (not fetch) so the page works from file://. -->
+<script src="session-recall.data.js" onerror="window.SESSION_RECALL_BUNDLE = null"></script>
+<script src="session-recall.focus.js" onerror="window.SESSION_RECALL_FOCUS = null"></script>
+</head>
+<body>
+<nav>
+  <div id="list"></div>
+  <div class="add"><label>Add JSON files…<input id="file" type="file" accept=".json" multiple hidden></label></div>
+</nav>
+<main id="main"></main>
+<script>
+(() => {
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const para = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").split(/\n{2,}/).map((p) => `<p>${p}</p>`).join("");
+  const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const link = (r) => `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>`;
+
+  const sessions = new Map(), shown = new Set();
+  let deck = [], pos = 0;  // deck: [{ s, q, opts, picked }]
+  const add = (d) => { if (d && d.format === "session-recall" && d.id && Array.isArray(d.questions)) { sessions.set(d.id, d); return true; } };
+  const byDate = () => [...sessions.values()].sort((a, b) => (b.created || "").localeCompare(a.created || ""));
+
+  function rebuild() {
+    deck = byDate().filter((s) => shown.has(s.id)).flatMap((s) => s.questions.map((q) => ({ s, q, opts: shuffle(q.options), picked: null })));
+    pos = 0; renderList(); render();
+  }
+
+  function renderList() {
+    document.getElementById("list").innerHTML = byDate().map((s) =>
+      `<label><input type="checkbox" data-id="${esc(s.id)}" ${shown.has(s.id) ? "checked" : ""}> ${esc(s.title)}<span class="date">${esc((s.created || "").slice(0, 10))}</span></label>`).join("")
+      || `<p class="empty">No sessions yet.</p>`;
+    document.querySelectorAll("#list input").forEach((cb) => cb.onchange = () => { cb.checked ? shown.add(cb.dataset.id) : shown.delete(cb.dataset.id); rebuild(); });
+  }
+
+  function recap(s) {
+    return `<details><summary>Recap and references: ${esc(s.title)}</summary>
+      ${para(s.summary)}
+      <ul>${s.topics.map((t) => `<li><b>${esc(t.name)}</b>: ${esc(t.summary)}</li>`).join("")}</ul>
+      ${s.open_questions?.length ? `<p>Open questions:</p><ul>${s.open_questions.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${s.references?.length ? `<p>References:</p><ul>${s.references.map((r) => `<li>${link(r)}${r.verified ? "" : " (unverified)"}</li>`).join("")}</ul>` : ""}
+    </details>`;
+  }
+
+  function render() {
+    const el = document.getElementById("main");
+    if (!deck.length) {
+      const picked = byDate().filter((s) => shown.has(s.id));
+      el.innerHTML = picked.length
+        ? `<p class="empty">No quiz questions here. None passed the confidence check.</p>${picked.map(recap).join("")}`
+        : `<p class="empty">${sessions.size ? "Pick a session on the left." : "No sessions loaded. Run /session-recall, or add JSON files."}</p>`;
+      return;
+    }
+    if (pos >= deck.length) {
+      el.innerHTML = `<p class="empty">That was the last of ${deck.length} question${deck.length > 1 ? "s" : ""}.</p>
+        <div class="move"><button id="back">← Back</button><button id="again">Start over</button></div>`;
+      el.querySelector("#back").onclick = () => { pos--; render(); };
+      el.querySelector("#again").onclick = rebuild;
+      return;
+    }
+    const c = deck[pos], { s, q } = c, done = c.picked !== null;
+    el.innerHTML = `
+      <div class="where">${esc(s.title)} · ${pos + 1} of ${deck.length}</div>
+      ${q.context ? `<p class="ctx">${esc(q.context)}</p>` : ""}
+      <p class="prompt">${esc(q.prompt)}</p>
+      ${c.opts.map((o) => `<button class="opt${done && o.id === q.answer ? " right" : ""}${o.id === c.picked ? " picked" : ""}" data-o="${esc(o.id)}" ${done ? "disabled" : ""}>${esc(o.text)}</button>`).join("")}
+      ${done ? `<div class="ans">
+        ${para(q.explanation)}
+        ${q.correction ? `<p>${esc(q.correction)}</p>` : ""}
+        ${(q.verification?.evidence || []).map((e) => { const r = s.references.find((x) => x.id === e.ref); return r ? `<p class="src">“${esc(e.quote)}”<br>${link(r)}</p>` : ""; }).join("")}
+        ${q.session_anchor ? `<p class="from">From the session: ${esc(q.session_anchor)}</p>` : ""}
+      </div>` : ""}
+      <div class="move"><button id="back" ${pos ? "" : "disabled"}>← Back</button><button id="next">${done ? "Next →" : "Skip →"}</button></div>
+      ${recap(s)}`;
+    el.querySelectorAll(".opt").forEach((b) => b.onclick = () => { c.picked = b.dataset.o; render(); });
+    el.querySelector("#back").onclick = () => { pos--; render(); };
+    el.querySelector("#next").onclick = () => { pos++; render(); };
+  }
+
+  document.getElementById("file").onchange = async (e) => {
+    for (const f of e.target.files) { try { const d = JSON.parse(await f.text()); if (add(d)) shown.add(d.id); } catch {} }
+    rebuild();
+  };
+
+  (window.SESSION_RECALL_BUNDLE?.sessions || []).forEach(add);
+  const focus = new URLSearchParams(location.hash.slice(1)).get("session") || window.SESSION_RECALL_FOCUS;
+  if (focus && sessions.has(focus)) shown.add(focus); else if (sessions.size) shown.add(byDate()[0].id);
+  rebuild();
+})();
+</script>
+</body>
+</html>

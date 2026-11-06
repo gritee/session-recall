@@ -1,0 +1,302 @@
+{
+  "format": "session-recall",
+  "schema_version": 1,
+  "id": "2026-11-05-session-recall-design",
+  "title": "Designing the session-recall skill",
+  "created": "2026-11-05T18:00:00Z",
+  "project": {
+    "name": "flash-cards"
+  },
+  "source": {
+    "basis": "context",
+    "coverage": "full",
+    "notes": "Example export of the session that designed this skill. Every question was checked against a page fetched on 2026-11-05."
+  },
+  "generator": {
+    "skill": "session-recall",
+    "skill_version": "1.0.0",
+    "model": "claude-opus-5-5"
+  },
+  "summary": "The session designed a Claude Code skill that turns a working session into a recap, a 3-option quiz and references. Key decisions: a flat folder of versioned JSON exports (canonical), derived Obsidian Markdown notes, and a single-file HTML runner. Tangents covered how browsers restrict pages opened from `file://`, how an Obsidian vault is just a folder, and how to keep generated questions honest (truth from sources, not from the conversation).",
+  "tags": [
+    "claude-code",
+    "obsidian",
+    "learning-tools"
+  ],
+  "topics": [
+    {
+      "id": "claude-code-skills",
+      "name": "Claude Code skills",
+      "origin": "main",
+      "depth": "explored",
+      "tags": [
+        "claude-code"
+      ],
+      "summary": "A skill is a folder with a SKILL.md whose YAML frontmatter (name, description) tells Claude when to load it; supporting scripts and reference files sit beside it.",
+      "signals": [
+        "goal",
+        "direct-question"
+      ]
+    },
+    {
+      "id": "file-url-origin",
+      "name": "Browser restrictions on file:// pages",
+      "origin": "main",
+      "depth": "explored",
+      "tags": [
+        "web"
+      ],
+      "summary": "Pages opened from disk generally can't fetch() sibling JSON files, but classic <script src> tags still load, so the runner reads a generated .js bundle.",
+      "related": [
+        "claude-code-skills"
+      ],
+      "signals": [
+        "agent-introduced"
+      ]
+    },
+    {
+      "id": "obsidian-vault",
+      "name": "Obsidian vaults and callouts",
+      "origin": "tangent",
+      "depth": "explored",
+      "tags": [
+        "obsidian"
+      ],
+      "summary": "A vault is an ordinary folder of Markdown files; Obsidian adds features like tags and foldable callouts on top.",
+      "signals": [
+        "direct-question"
+      ]
+    },
+    {
+      "id": "json-schema-versioning",
+      "name": "Versioning a JSON format",
+      "origin": "main",
+      "depth": "explored",
+      "tags": [
+        "json-schema"
+      ],
+      "summary": "An integer schema_version plus a JSON Schema using `const`/`enum` gives a stable contract; additive changes keep the version, breaking changes bump it.",
+      "signals": [
+        "goal"
+      ]
+    },
+    {
+      "id": "unbiased-shuffle",
+      "name": "Unbiased shuffling",
+      "origin": "tangent",
+      "depth": "mentioned",
+      "tags": [
+        "algorithms"
+      ],
+      "summary": "The runner shuffles option order so the answer position carries no signal.",
+      "signals": [
+        "agent-introduced"
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "q1",
+      "topic": "obsidian-vault",
+      "difficulty": 1,
+      "prompt": "What is an Obsidian vault on disk?",
+      "options": [
+        {
+          "id": "a",
+          "text": "A folder on your local file system, with vault-specific preferences kept in a .obsidian folder at its root"
+        },
+        {
+          "id": "b",
+          "text": "A single database file that Obsidian exports to Markdown on demand"
+        },
+        {
+          "id": "c",
+          "text": "A cloud workspace that only exists while synced through Obsidian Sync"
+        }
+      ],
+      "answer": "a",
+      "explanation": "Obsidian's docs define a vault as a folder on your local file system, and Obsidian creates a .obsidian configuration folder in the vault root for that vault's preferences. Because it's an ordinary local folder, it is neither a single database file nor a cloud-only workspace. Obsidian's global settings are stored elsewhere, in a system folder.",
+      "session_anchor": "Asked whether output should go to an Obsidian 'note folder (or vault)'.",
+      "verification": {
+        "status": "verified",
+        "refs": [
+          "r1"
+        ],
+        "evidence": [
+          {
+            "ref": "r1",
+            "quote": "A vault is a folder on your local file system, including any subfolders."
+          },
+          {
+            "ref": "r1",
+            "quote": "Obsidian creates an .obsidian configuration folder in the root folder of the vault, which contains preferences specific to that vault"
+          }
+        ]
+      }
+    },
+    {
+      "id": "q2",
+      "topic": "claude-code-skills",
+      "difficulty": 2,
+      "prompt": "In a Claude Code skill's SKILL.md, what is the frontmatter `description` used for?",
+      "options": [
+        {
+          "id": "a",
+          "text": "It is shown only in the plugin marketplace listing"
+        },
+        {
+          "id": "b",
+          "text": "It replaces Claude's system prompt while the skill runs"
+        },
+        {
+          "id": "c",
+          "text": "It helps Claude decide when to load the skill automatically; the skill's body loads only when it's used"
+        }
+      ],
+      "answer": "c",
+      "explanation": "Per the Claude Code docs, the frontmatter tells Claude when to use the skill, and the description specifically helps Claude decide when to load it automatically. The instructions in the body load only when the skill is used. The description is neither marketplace-only text nor a replacement system prompt.",
+      "session_anchor": "Asked for a skill invoked by slash command at the end of a jam session.",
+      "verification": {
+        "status": "verified",
+        "refs": [
+          "r4"
+        ],
+        "evidence": [
+          {
+            "ref": "r4",
+            "quote": "the `description` helps Claude decide when to load the skill automatically."
+          },
+          {
+            "ref": "r4",
+            "quote": "Unlike CLAUDE.md content, a skill's body loads only when it's used, so long reference material costs almost nothing until you need it."
+          }
+        ]
+      }
+    },
+    {
+      "id": "q3",
+      "topic": "json-schema-versioning",
+      "difficulty": 1,
+      "context": "The export format pins `\"format\": { \"const\": \"session-recall\" }` in its schema.",
+      "prompt": "What does the JSON Schema `const` keyword do?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Restricts a value to a single value"
+        },
+        {
+          "id": "b",
+          "text": "Marks a value as immutable once the document has been validated"
+        },
+        {
+          "id": "c",
+          "text": "Sets the value used when the property is missing"
+        }
+      ],
+      "answer": "a",
+      "explanation": "The JSON Schema docs say `const` restricts a value to a single value: the instance is valid only if it equals that value. It is a validation constraint, not an immutability guarantee like JavaScript's const, and it doesn't fill in missing values.",
+      "session_anchor": "Wanted the export standardized and serialized with a versioned format.",
+      "verification": {
+        "status": "verified",
+        "refs": [
+          "r3"
+        ],
+        "evidence": [
+          {
+            "ref": "r3",
+            "quote": "The `const` keyword is used to restrict a value to a single value."
+          }
+        ]
+      }
+    },
+    {
+      "id": "q4",
+      "topic": "obsidian-vault",
+      "difficulty": 2,
+      "context": "The generated notes hide each quiz answer until clicked.",
+      "prompt": "Which Obsidian callout header renders collapsed by default?",
+      "options": [
+        {
+          "id": "a",
+          "text": "[!success]+ Answer"
+        },
+        {
+          "id": "b",
+          "text": "[!success]- Answer"
+        },
+        {
+          "id": "c",
+          "text": "[!success]? Answer"
+        }
+      ],
+      "answer": "b",
+      "explanation": "A plus or minus directly after the type identifier makes a callout foldable. Plus expands it by default, and minus collapses it. The docs list only these two markers for folding.",
+      "session_anchor": "Wanted the quiz output usable from within an Obsidian folder.",
+      "verification": {
+        "status": "verified",
+        "refs": [
+          "r2"
+        ],
+        "evidence": [
+          {
+            "ref": "r2",
+            "quote": "You can make a callout foldable by adding a plus (+) or a minus (-) directly after the type identifier. A plus sign expands the callout by default, and a minus sign collapses it instead."
+          }
+        ]
+      }
+    }
+  ],
+  "references": [
+    {
+      "id": "r1",
+      "title": "How Obsidian stores data – Obsidian Help",
+      "url": "https://obsidian.md/help/Files+and+folders/How+Obsidian+stores+data",
+      "kind": "docs",
+      "topics": [
+        "obsidian-vault"
+      ],
+      "verified": true,
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": "r2",
+      "title": "Callouts – Obsidian Help",
+      "url": "https://obsidian.md/help/callouts",
+      "kind": "docs",
+      "topics": [
+        "obsidian-vault"
+      ],
+      "verified": true,
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": "r3",
+      "title": "JSON Schema – Constant values",
+      "url": "https://json-schema.org/understanding-json-schema/reference/const",
+      "kind": "docs",
+      "topics": [
+        "json-schema-versioning"
+      ],
+      "verified": true,
+      "accessed": "2026-11-05"
+    },
+    {
+      "id": "r4",
+      "title": "Extend Claude with skills – Claude Code Docs",
+      "url": "https://code.claude.com/docs/en/skills",
+      "kind": "docs",
+      "topics": [
+        "claude-code-skills"
+      ],
+      "verified": true,
+      "accessed": "2026-11-05"
+    }
+  ],
+  "open_questions": [
+    "How should exports from several authors be aggregated into a shared curriculum?",
+    "What spaced-repetition schedule (if any) should the runner use beyond 'weakest first'?"
+  ],
+  "next_steps": [
+    "Read about spaced-repetition algorithms (e.g. SM-2) before extending the runner's history model."
+  ]
+}

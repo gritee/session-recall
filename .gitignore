@@ -1,0 +1,5 @@
+# derived by recall.py build
+examples/session-recall.*
+examples/*.md
+__pycache__/
+.DS_Store

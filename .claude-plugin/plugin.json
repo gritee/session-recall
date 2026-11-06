@@ -1,0 +1,16 @@
+{
+  "name": "session-recall",
+  "description": "Turn a jam session into a recap, quiz and references, saved as JSON + Obsidian notes, with an HTML quiz runner.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Gritee"
+  },
+  "repository": "https://github.com/Gritee/session-recall",
+  "keywords": [
+    "learning",
+    "quiz",
+    "obsidian",
+    "recap"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session-recall.v1.schema.json",
+  "title": "session-recall export v1",
+  "type": "object",
+  "required": ["format", "schema_version", "id", "title", "created", "source", "generator", "summary", "tags", "topics", "questions", "references"],
+  "properties": {
+    "format": { "const": "session-recall" },
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}-[a-z0-9]+(-[a-z0-9]+)*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "created": { "type": "string", "format": "date-time" },
+    "author": { "type": "string" },
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "repo": { "type": "string" },
+        "path": { "type": "string" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["basis", "coverage"],
+      "properties": {
+        "basis": { "enum": ["context", "transcript", "provided"] },
+        "coverage": { "enum": ["full", "partial"] },
+        "notes": { "type": "string" }
+      }
+    },
+    "generator": {
+      "type": "object",
+      "required": ["skill", "skill_version"],
+      "properties": {
+        "skill": { "const": "session-recall" },
+        "skill_version": { "type": "string" },
+        "model": { "type": "string" }
+      }
+    },
+    "summary": { "type": "string", "minLength": 1 },
+    "tags": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+    "topics": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/topic" } },
+    "questions": { "type": "array", "items": { "$ref": "#/$defs/question" } },
+    "references": { "type": "array", "items": { "$ref": "#/$defs/reference" } },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "next_steps": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "topic": {
+      "type": "object",
+      "required": ["id", "name", "origin", "depth", "summary"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "name": { "type": "string" },
+        "origin": { "enum": ["main", "tangent"] },
+        "depth": { "enum": ["mentioned", "explored", "deep"] },
+        "tags": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+        "summary": { "type": "string" },
+        "signals": { "type": "array", "items": { "enum": ["goal", "direct-question", "confirmation", "repeated-followup", "tangent", "problem", "agent-introduced"] } },
+        "related": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
+      }
+    },
+    "question": {
+      "type": "object",
+      "required": ["id", "topic", "difficulty", "prompt", "options", "answer", "explanation", "verification"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^q[0-9]+$" },
+        "topic": { "$ref": "#/$defs/slug" },
+        "difficulty": { "enum": [1, 2, 3] },
+        "context": { "type": "string" },
+        "prompt": { "type": "string", "minLength": 1 },
+        "options": {
+          "type": "array", "minItems": 3, "maxItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["id", "text"],
+            "properties": { "id": { "enum": ["a", "b", "c"] }, "text": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "answer": { "enum": ["a", "b", "c"] },
+        "explanation": { "type": "string", "minLength": 1 },
+        "correction": { "type": "string" },
+        "session_anchor": { "type": "string" },
+        "verification": {
+          "type": "object",
+          "required": ["status", "refs", "evidence"],
+          "properties": {
+            "status": { "const": "verified" },
+            "refs": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+            "evidence": {
+              "type": "array", "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["ref", "quote"],
+                "properties": { "ref": { "type": "string" }, "quote": { "type": "string", "minLength": 1, "maxLength": 400 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "required": ["id", "title", "url", "kind", "verified"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^r[0-9]+$" },
+        "title": { "type": "string" },
+        "url": { "type": "string", "pattern": "^https?://" },
+        "kind": { "enum": ["docs", "spec", "tutorial", "explainer", "video", "community", "other"] },
+        "topics": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+        "verified": { "type": "boolean" },
+        "accessed": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}
